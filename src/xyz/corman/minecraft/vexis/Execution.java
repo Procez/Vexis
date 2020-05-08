@@ -117,7 +117,7 @@ public class Execution {
 					evname = event.getEventName().trim().toLowerCase();	
 					cls = (Class<? extends Event>) _key.__tojava__(Class.class);
 				}
-				boolean fullCls = cls != null & cls.isInstance(event);
+				boolean fullCls = cls != null && cls.isInstance(event);
 				//System.out.println(evcls.toString() + " || "  + evneeded.toString());
 				if (nameCond || fullCls) {
 				//if (evneeded.isAssignableFrom(evcls)) {

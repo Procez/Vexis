@@ -1100,6 +1100,19 @@ class vexis:
         func(*args, **kwargs)
       return new
 
+  class preextend:
+    '''Extend a function with arguments'''
+    def __init__(self, *args):
+      '''Initialize this extension object.'''
+      self.args = args
+    def __call__(self, func):
+      '''Decorate a function with this extension object, this extension's arguments are added to the function arguments.'''
+      @functools.wraps(func)
+      def new(*args, **kwargs):
+        args = self.args + args
+        func(*args, **kwargs)
+      return new
+
   class menu:
     '''A menu object, allowing you to create menus with multiple pages much easier.'''
     def __init__(self, name, slots, pages=2,
@@ -1235,7 +1248,7 @@ class vexis:
     def send(self, value):
       try:
         if not self.gen:
-          self.gen = f(*args, **kwargs)
+          self.gen = self.f(*self.args, **self.kwargs)
         val = self.gen.send(value)
         if isinstance(val, vexis.coro_function):
           val.execute(self)
@@ -1249,6 +1262,9 @@ class vexis:
     '''
     def execute(self, coro):
       '''The `execute` method is internally used to execute a coroutine function.'''
+      raise NotImplementedError
+    def start(self):
+      '''Starts this coroutine function without returning to any other coroutine..'''
       raise NotImplementedError
 
   class sleep(coro_function):
@@ -1282,6 +1298,55 @@ class vexis:
         except StopIteration:
           pass
 
+  class gather(coro_function):
+    '''
+    The `gather` class is a `vexis.coro_function` subclass which schedules multiple coroutines at once for concurrency.
+    This class takes in a list of `vexis.function_coro_base` objects, and returns a `gather` object, which can be yielded in functions decorated with `vexis.coroutine` to run multiple functions at once.
+
+    Args:
+      *coros (Tuple[vexis.function_coro_base]): The coroutines to call concurrently
+
+    Returns:
+      gather: The gather object to yield in a coroutine.
+    '''
+    def __init__(self, *coros):
+      self.coros = coros
+    def execute(self, coro):
+      def generator():
+        c = len(self.coros)
+        out = []
+        while c != 0:
+          v = yield
+          c -= 1
+          out.append(v)
+        if coro:
+          coro.send(out)
+      gen = generator()
+      gen.send(None)
+      for i in self.coros:
+        def manage(func, coroutine):
+          @functools.wraps(func)
+          def f(*args, **kwargs):
+            started = func(*args, **kwargs)
+            try:
+              val = started.send(None)
+              while True:
+                new = yield val
+                val = started.send(new)
+            except StopIteration as e:
+              gen.send(e.args[0])
+          call = vexis.coro_object(vexis.handleCoroutine(f), *i.args, **i.kwargs)
+          try:
+            call.send(None)
+          except StopIteration as e:
+            gen.send(e.args[0])
+        manage(i.func, i)
+    def start(self):
+      self.execute(None)
+
+  class function_coro_base(coro_function):
+    '''The base class for all functions decorated with `vexis.coroutine'''
+
   @classmethod
   def coroutine(cls, func):
     '''The `coroutine` method allows you to use generators to manage scheduling and your function.
@@ -1304,8 +1369,9 @@ class vexis:
       coro()
       ```
     '''
-    class function_coro(vexis.coro_function):
+    class function_coro(vexis.function_coro_base):
       def __init__(self, *args, **kwargs):
+        self.func = func
         self.args = args
         self.kwargs = kwargs
       def execute(self, coro):
@@ -1327,6 +1393,24 @@ class vexis:
       def start(self):
         vexis.coro_object(vexis.handleCoroutine(func), *self.args, **self.kwargs).send(None)
     return function_coro
+
+  @classmethod
+  def manage_call(cls, f):
+    '''The `manage_call` function converts coroutines to regular functions and wraps the functions in handlers.'''
+    if isinstance(f, vexis.function_coro_base):
+      _f = f
+      f = vexis.handleCoroutine(f)
+      @functools.wraps(_f)
+      def coro(*args, **kwargs):
+        f(*args, **kwargs).start()
+      return coro
+    else:
+      _f = f
+      f = vexis.handle(f)
+      @functools.wraps(_f)
+      def call(*args, **kwargs):
+        return f(*args, **kwargs)
+      return call
 
   @classmethod
   def custom_event(cls, custom):
@@ -1428,7 +1512,7 @@ class vexis:
       for ev in events:
         if ev not in cls._events:
           cls._events[ev] = []
-        cls._events[ev].append(func)
+        cls._events[ev].append(vexis.manage_call(func))
       return func
     return inner
   
@@ -1456,7 +1540,7 @@ class vexis:
     def inner(func):    
       class MyMeth(BukkitCommand):
         def execute(self, sender, label, args):
-          return vexis._vexis_execution.runCommand(func, sender, label, list(args))
+          return vexis._vexis_execution.runCommand(vexis.manage_call(func), sender, label, list(args))
           
       try:
         label = inspect.stack()[-1][0].f_globals["__name__"]

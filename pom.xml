@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>xyz.corman.minecraft.vexis</groupId>
   <artifactId>Vexis</artifactId>
-  <version>1.0.2-beta</version>
+  <version>1.1.0-beta</version>
   <name>Vexis</name>
   <description>A plugin allowing people to use Python code to create Minecraft plugins</description>
 
