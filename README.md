@@ -29,6 +29,11 @@ Where can I download Vexis?
 [public-private]: #where-is-download
 You can download Vexis at https://github.com/Procez/Vexis/releases. Please note the latest version is `1.0.1-beta`, so it may have bugs or isn't perfect. You can always give us feedback on github as well.
 
+Where can I find Documentation?
+----------------------------------
+[public-private]: #where-is-documentation
+You can find documentation for Vexis at https://vexis.digitiz.us
+
 Quickstart
 ------------------------------------
 [public-private]: #quickstart
