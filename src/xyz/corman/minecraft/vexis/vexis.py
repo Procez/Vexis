@@ -4,7 +4,7 @@ try:
   from org.bukkit import Bukkit, ChatColor, OfflinePlayer, Material, Statistic, Location
   from org.bukkit.command import CommandSender
   from org.bukkit.command.defaults import BukkitCommand
-  from org.bukkit.event import EventHandler, Listener
+  from org.bukkit.event import EventHandler, Listener, Event
   from org.bukkit.inventory import ItemStack
   from org.bukkit.entity import Entity, Player, EntityType, Projectile
   from org.bukkit.projectiles import ProjectileSource
@@ -1304,7 +1304,7 @@ class vexis:
       coro()
       ```
     '''
-    class mycoro(vexis.coro_function):
+    class function_coro(vexis.coro_function):
       def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -1320,10 +1320,67 @@ class vexis:
           except StopIteration as e:
             coro.send(e.args[0])
         call = vexis.coro_object(vexis.handleCoroutine(f), *self.args, **self.kwargs)
-        call.send(None)
+        try:
+          call.send(None)
+        except StopIteration as e:
+          coro.send(e.args[0])
       def start(self):
         vexis.coro_object(vexis.handleCoroutine(func), *self.args, **self.kwargs).send(None)
-    return mycoro
+    return function_coro
+
+  @classmethod
+  def custom_event(cls, custom):
+    '''The `custom_event` method allows for easy creation of custom events through decorating your event class with this custom event.
+
+    Args:
+      custom (class): The class you want to create an event from
+
+    Returns:
+      class: A new class inheriting from `Event` with the same properties, other bases, and otherwise.
+
+    Examples:
+      ```python
+      @vexis.custom_event
+      class CustomEvent:
+        def __init__(self, x, y):
+          self.x = x
+          self.y = y
+        def xIsGreaterThanY(self):
+          return self.x > self.y
+      ```
+    '''
+    new = type(cls.__name__, tuple(set(cls.__bases__ + (Event,))), cls.__dict__)
+    return new
+
+  @classmethod
+  def trigger_event(cls, inst, *args, **kwargs):
+    '''The `trigger_event` method allows for easy access to initializing classes. This can be used if you want to test your event handler on a rare event, or to call your custom event.
+
+    Args:
+      inst (Event, str, class): The event instance you want to trigger, or in the case that there are extra `*args` or `**kwargs`, the type of event you want to initialize (the full string name, or preferably, the event class)
+      *args: Extra arguments for initializing custom event classes in the function if used.
+      **kwargs: Extra keyword arguments for initializing custom event classes in the function if used.
+
+    Examples:
+      ```python
+      @vexis.custom_event
+      class MyCustomEvent:
+        def __init__(self, x, y, z):
+          self.x = x
+          self.y = y
+          self.z = z
+        def sumOfParts(self):
+          return self.x + self.y + self.z
+
+      vexis.trigger_event(MyCustomEvent, 1, 2, 3)
+      ```    
+    '''
+    if not args and not kwargs:
+      Bukkit.getServer().getPluginManager().callEvent(inst)
+    elif isinstance(inst, str):
+      cls.trigger_event(Vexis.eventlist.get(inst), *args, **kwargs)
+    else:
+      cls.trigger_event(inst(*args, **kwargs))
 
   @classmethod
   def event(cls, func):
@@ -1399,7 +1456,7 @@ class vexis:
     def inner(func):    
       class MyMeth(BukkitCommand):
         def execute(self, sender, label, args):
-          return vexis._vexis_execution.runCommand(vexis.handle(func), sender, label, list(args))
+          return vexis._vexis_execution.runCommand(func, sender, label, list(args))
           
       try:
         label = inspect.stack()[-1][0].f_globals["__name__"]
@@ -1443,7 +1500,7 @@ class vexis:
     with open(Paths.get(cls._vexis_folder, "documentation.html").toString(), "w") as f:
       f.write(doc)
       
-@vexis.named_command(name = "vexis", description = "Manage Vexis scripts", usage = "/vexis")
+"""@vexis.named_command(name = "vexis", description = "Manage Vexis scripts", usage = "/vexis")
 def vexis_command(sender, label, args):
   if not args:
     sender.sendMessage(vexis.color('''
@@ -1453,4 +1510,4 @@ def vexis_command(sender, label, args):
     '''))
   elif (len(args) > 1 and args[0] == 'reload'):
     script = ' '.join(args[1:])
-    sender.sendMessage(vexis.color('&c&lVexis 1.0.0 &f- {}'.format(Vexis.reloadScript(script))))
+    sender.sendMessage(vexis.color('&c&lVexis 1.0.0 &f- {}'.format(Vexis.reloadScript(script))))"""

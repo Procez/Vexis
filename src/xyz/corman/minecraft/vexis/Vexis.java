@@ -41,7 +41,7 @@ import io.github.classgraph.ClassInfoList;
 public class Vexis extends JavaPlugin implements Listener {
 	
 	static HashMap<String, PythonInterpreter> interpreters;
-	static HashMap<String, Class<? extends Event>> eventlist =new HashMap<String, Class<? extends Event>>();
+	static HashMap<String, Class<? extends Event>> eventlist = new HashMap<String, Class<? extends Event>>();
 	private PythonInterpreter vexisInterpreter;
 	static PyObject mod;
 	RegisteredListener registeredListener;
@@ -229,7 +229,7 @@ public class Vexis extends JavaPlugin implements Listener {
         mod.__setattr__("_vexis_data_folder", new PyString(getDataFolder().getAbsolutePath()));
         mod.__setattr__("_vexis_scripts", new PyString(vexis_scripts));
         mod.__setattr__("_vexis_folder", new PyString(vexis_folder));
-    	execution = new Execution(vexisInterpreter, mod);
+    	execution = new Execution(vexisInterpreter, mod, eventlist);
     	mod.__setattr__("_vexis_execution", Py.java2py(execution));
         try {
         	mod.__getattr__("document").__call__();

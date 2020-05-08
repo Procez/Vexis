@@ -1,5 +1,6 @@
 package xyz.corman.minecraft.vexis;
 
+import java.util.HashMap;
 import java.util.Set;
 
 import org.bukkit.entity.Player;
@@ -9,7 +10,6 @@ import org.bukkit.inventory.Inventory;
 import org.python.core.Py;
 import org.python.core.PyDictionary;
 import org.python.core.PyException;
-import org.python.core.PyBaseException;
 import org.python.core.PyList;
 import org.python.core.PyObject;
 import org.python.core.PyString;
@@ -19,10 +19,12 @@ import org.python.util.PythonInterpreter;
 public class Execution {
 	PythonInterpreter vexisInterpreter;
 	PyObject mod;
+	HashMap<String, Class<? extends Event>> eventlist;
 	
-	public Execution(PythonInterpreter vexisIntrp, PyObject module) {
+	public Execution(PythonInterpreter vexisIntrp, PyObject module, HashMap<String, Class<? extends Event>> eventseq) {
 		vexisInterpreter = vexisIntrp;
 		mod = module;
+		eventlist = eventseq;
 	}
 	
     public void handleCall(PyObject func, PyObject[] args) {
@@ -58,6 +60,7 @@ public class Execution {
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void handleEvent(Event event) {
 		try {
 			PyDictionary _events = (PyDictionary) vexisInterpreter.get("vexis").__getattr__("_events");
@@ -96,13 +99,27 @@ public class Execution {
 				}
 			}
 			for (PyObject _key : _eventset) {
-				PyString eventName = (PyString) _key;
-				PyList eventCall = (PyList) _events.get(eventName);
-				String evname = event.getEventName().trim().toLowerCase();
-				String evneeded = eventName.toString().trim().toLowerCase();
-				//Class<? extends Event> cls = eventlist.get(eventName.toString());
+				PyString eventName;
+				String evneeded;
+				PyList eventCall;
+				String evname;
+				boolean nameCond = false;
+				Class<? extends Event> cls;
+				if (_key instanceof PyString) {
+					eventName = (PyString) _key;
+					eventCall = (PyList) _events.get(eventName);
+					evname = event.getEventName().trim().toLowerCase();
+					evneeded = eventName.toString().trim().toLowerCase();
+					nameCond = evname.equals(evneeded);
+					cls = eventlist.get(eventName.toString());
+				} else {
+					eventCall = (PyList) _events.get(_key);
+					evname = event.getEventName().trim().toLowerCase();	
+					cls = (Class<? extends Event>) _key.__tojava__(Class.class);
+				}
+				boolean fullCls = cls != null & cls.isInstance(event);
 				//System.out.println(evcls.toString() + " || "  + evneeded.toString());
-				if ( evname.equals(evneeded) ) {
+				if (nameCond || fullCls) {
 				//if (evneeded.isAssignableFrom(evcls)) {
 					PyObject pyEvent = Py.java2py(event);
 					for (PyObject func : eventCall.getArray()) {

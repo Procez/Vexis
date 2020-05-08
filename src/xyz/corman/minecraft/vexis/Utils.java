@@ -44,7 +44,7 @@ public class Utils {
 	    return null; //Return null/nothing if no entity was found
 	}
 	
-	public static void createExplosion​(Location loc, float power, boolean fire, boolean blockbreak) {
+	public static void createExplosion(Location loc, float power, boolean fire, boolean blockbreak) {
 		loc.getWorld().createExplosion(loc, power, fire, blockbreak);
 	}
 	

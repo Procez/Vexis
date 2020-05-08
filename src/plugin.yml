@@ -1,6 +1,6 @@
 main: xyz.corman.minecraft.vexis.Vexis
 name: Vexis
-version: 1.0.2-beta
+version: 1.0.3-beta
 author: corman
 description: A plugin allowing people to use Python code to create a minecraft plugin
 commands: {}
